@@ -56,10 +56,12 @@ impl Policy for AuthorizationPolicy {
 
         let time = format!("{}", chrono::Utc::now().format(TIME_FORMAT));
 
-        let uri_path = request.uri().to_string();
+        let uri_path = &request.uri().path_and_query().unwrap().to_string()[1..];
+        println!("uri_path == {:#?}", uri_path);
 
         let auth = {
             let resource_link = generate_resource_link(&uri_path);
+            println!("resource_link_new == {}", resource_link);
             generate_authorization(
                 &self.authorization_token,
                 &request.method(),
@@ -73,9 +75,9 @@ impl Policy for AuthorizationPolicy {
 
         // add the headers
         // TODO: remove this when no longer necessary
-        //request.headers_mut().remove(HEADER_DATE);
-        //request.headers_mut().remove(HEADER_VERSION);
-        //request.headers_mut().remove(AUTHORIZATION);
+        request.headers_mut().remove(HEADER_DATE);
+        request.headers_mut().remove(HEADER_VERSION);
+        request.headers_mut().remove(AUTHORIZATION);
 
         request
             .headers_mut()

@@ -195,6 +195,7 @@ impl CosmosClient {
 
         let auth = {
             let resource_link = generate_resource_link(&uri_path);
+            println!("resource_link_old == {}", resource_link);
             generate_authorization(
                 &self.auth_token,
                 &http_method,
