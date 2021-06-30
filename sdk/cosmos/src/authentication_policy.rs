@@ -30,7 +30,13 @@ impl Policy for AuthenticationPolicy {
             self.authorization_token
         );
 
-        // this will panic if there are no more following policies.
+        if next.is_empty() {
+            return Err(Box::new(azure_core::PipelineError::InvalidTailPolicy(
+                Box::new(self.clone()),
+            )));
+        }
+
+        // now next[0] is safe (will not panic) because of the above check
         next[0].send(ctx, request, &next[1..]).await
     }
 }
