@@ -1,11 +1,20 @@
+use crate::Policy;
 use http::StatusCode;
 #[cfg(feature = "enable_hyper")]
 use hyper::{self, body, Body};
 use std::cmp::PartialEq;
 
+#[derive(Debug, thiserror::Error)]
+pub enum PipelineError {
+    #[error("Invalid pipeline: last policy is not a TransportPolicy: {0:?}")]
+    InvalidTailPolicy(Box<dyn Policy>),
+}
+
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("Pipeline error: {0}")]
+    PipelineError(#[from] PipelineError),
     #[error("Policy error: {0}")]
     PolicyError(Box<dyn std::error::Error + Send + Sync>),
     #[error("parsing error: {0}")]

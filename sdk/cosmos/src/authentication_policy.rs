@@ -30,6 +30,7 @@ impl Policy for AuthenticationPolicy {
             self.authorization_token
         );
 
+        // this will panic if there are no more following policies.
         next[0].send(ctx, request, &next[1..]).await
     }
 }
