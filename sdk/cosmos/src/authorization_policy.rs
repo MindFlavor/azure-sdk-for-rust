@@ -5,11 +5,11 @@ use std::sync::Arc;
 // We can implement Debug without leaking secrets because `AuthorizationToken`
 // already masks the secure bits on its own.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AuthenticationPolicy {
+pub struct AuthorizationPolicy {
     authorization_token: AuthorizationToken,
 }
 
-impl AuthenticationPolicy {
+impl AuthorizationPolicy {
     pub(crate) fn new(authorization_token: AuthorizationToken) -> Self {
         Self {
             authorization_token,
@@ -18,7 +18,7 @@ impl AuthenticationPolicy {
 }
 
 #[async_trait::async_trait]
-impl Policy for AuthenticationPolicy {
+impl Policy for AuthorizationPolicy {
     async fn send(
         &self,
         ctx: &mut Context,
@@ -26,7 +26,7 @@ impl Policy for AuthenticationPolicy {
         next: &[Arc<dyn Policy>],
     ) -> PolicyResult<Response> {
         println!(
-            "called AuthenticationPolicy send with {:#?}",
+            "called AuthorizationPolicy send with {:#?}",
             self.authorization_token
         );
 

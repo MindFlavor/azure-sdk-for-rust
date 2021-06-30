@@ -59,11 +59,11 @@ fn new_pipeline_from_options(
     authorization_token: AuthorizationToken,
 ) -> Pipeline {
     let auth_policy: Arc<dyn azure_core::Policy> =
-        Arc::new(crate::AuthenticationPolicy::new(authorization_token));
+        Arc::new(crate::AuthorizationPolicy::new(authorization_token));
 
     let mut per_retry_policies = Vec::with_capacity(1);
-    // take care of adding the AuthenticationPolicy as **last** retry policy.
-    // Policies can change the url and/or the headers and the AuthenticationPolicy
+    // take care of adding the AuthorizationPolicy as **last** retry policy.
+    // Policies can change the url and/or the headers and the AuthorizationPolicy
     // must be able to inspect them or the resulting token will be invalid.
     per_retry_policies.push(auth_policy);
 
