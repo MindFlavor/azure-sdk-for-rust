@@ -35,7 +35,7 @@ use uuid::Uuid;
 
 pub use bytes_stream::*;
 pub use constants::*;
-pub use context::Context;
+pub use context::{Bag, Context};
 pub use errors::*;
 pub use headers::AddAsHeader;
 pub use http_client::{new_http_client, to_json, HttpClient};
