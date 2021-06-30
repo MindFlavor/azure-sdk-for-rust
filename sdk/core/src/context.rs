@@ -2,8 +2,6 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub trait Bag: Any + std::fmt::Debug + Send + Sync {}
-
 /// Pipeline execution context.
 ///
 /// During a pipeline execution, context will be passed from the function starting the
@@ -17,7 +15,7 @@ pub struct Context {
     // Temporary hack to make sure that Context is not initializeable
     // Soon Context will have proper data fields
     _priv: (),
-    bag: HashMap<&'static str, Arc<dyn Bag>>,
+    bag: HashMap<&'static str, Arc<dyn Any + Send + Sync>>,
 }
 
 impl Context {
@@ -28,11 +26,15 @@ impl Context {
         }
     }
 
-    pub fn get_from_bag(&self, k: &str) -> Option<&Arc<dyn Bag>> {
+    pub fn get_from_bag(&self, k: &str) -> Option<&Arc<dyn Any + Send + Sync>> {
         self.bag.get(k)
     }
 
-    pub fn insert_into_bag(&mut self, k: &'static str, v: Arc<dyn Bag>) -> Option<Arc<dyn Bag>> {
+    pub fn insert_into_bag(
+        &mut self,
+        k: &'static str,
+        v: Arc<dyn Any + Send + Sync>,
+    ) -> Option<Arc<dyn Any + Send + Sync>> {
         self.bag.insert(k, v)
     }
 }

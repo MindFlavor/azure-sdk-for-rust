@@ -63,5 +63,3 @@ pub(crate) enum ResourceType {
     UserDefinedFunctions,
     Triggers,
 }
-
-impl azure_core::Bag for ResourceType {}

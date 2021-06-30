@@ -45,15 +45,14 @@ impl Policy for AuthorizationPolicy {
         }
 
         let resource_type = {
-            let resource_type: &dyn std::any::Any = ctx.get_from_bag("resource_type").unwrap();
-
-            println!("resource_type == {:?}", resource_type.type_id());
+            let resource_type = ctx.get_from_bag("resource_type").unwrap();
 
             resource_type
                 .downcast_ref::<ResourceType>()
                 .unwrap()
                 .to_owned()
         };
+        println!("obtained resource type == {:?}", resource_type);
 
         let time = format!("{}", chrono::Utc::now().format(TIME_FORMAT));
 
@@ -73,6 +72,11 @@ impl Policy for AuthorizationPolicy {
         println!("about to add {} == {}", AUTHORIZATION, &auth);
 
         // add the headers
+        // TODO: remove this when no longer necessary
+        //request.headers_mut().remove(HEADER_DATE);
+        //request.headers_mut().remove(HEADER_VERSION);
+        //request.headers_mut().remove(AUTHORIZATION);
+
         request
             .headers_mut()
             .append(HEADER_DATE, HeaderValue::from_str(&time)?);
@@ -82,6 +86,8 @@ impl Policy for AuthorizationPolicy {
         request
             .headers_mut()
             .append(AUTHORIZATION, HeaderValue::from_str(&auth)?);
+
+        println!("\n\nrequest =={:?}", request);
 
         // now next[0] is safe (will not panic) because of the above check
         next[0].send(ctx, request, &next[1..]).await
