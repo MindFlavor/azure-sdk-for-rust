@@ -105,6 +105,7 @@ pub mod requests;
 pub mod resources;
 pub mod responses;
 
+pub(crate) mod authentication_policy;
 mod consistency_level;
 mod cosmos_entity;
 mod errors;
