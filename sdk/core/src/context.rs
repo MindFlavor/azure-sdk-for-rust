@@ -1,6 +1,5 @@
 use std::any::Any;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 /// Pipeline execution context.
 ///
@@ -10,31 +9,25 @@ use std::sync::Arc;
 /// pipeline execution history between policies.
 /// For example, it could be used to signal that an execution failed because a CosmosDB endpoint is
 /// down and the appropriate policy should try the next one).
-#[derive(Clone)]
+#[derive(Default)]
 pub struct Context {
-    // Temporary hack to make sure that Context is not initializeable
-    // Soon Context will have proper data fields
-    _priv: (),
-    bag: HashMap<&'static str, Arc<dyn Any + Send + Sync>>,
+    bag: HashMap<&'static str, Box<dyn Any + Send + Sync>>,
 }
 
 impl Context {
     pub fn new() -> Self {
-        Self {
-            _priv: (),
-            bag: HashMap::new(),
-        }
+        Self::default()
     }
 
-    pub fn get_from_bag(&self, k: &str) -> Option<&Arc<dyn Any + Send + Sync>> {
+    pub fn get_from_bag(&self, k: &str) -> Option<&Box<dyn Any + Send + Sync>> {
         self.bag.get(k)
     }
 
     pub fn insert_into_bag(
         &mut self,
         k: &'static str,
-        v: Arc<dyn Any + Send + Sync>,
-    ) -> Option<Arc<dyn Any + Send + Sync>> {
+        v: Box<dyn Any + Send + Sync>,
+    ) -> Option<Box<dyn Any + Send + Sync>> {
         self.bag.insert(k, v)
     }
 }

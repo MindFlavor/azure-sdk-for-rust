@@ -147,13 +147,12 @@ impl CosmosClient {
     /// Create a database
     pub async fn create_database<S: AsRef<str>>(
         &self,
-        ctx: Context,
+        mut ctx: Context,
         database_name: S,
         options: CreateDatabaseOptions,
     ) -> Result<CreateDatabaseResponse, crate::Error> {
         let mut request = self.prepare_request2("dbs", http::Method::POST, ResourceType::Databases);
-        let mut ctx = ctx.clone();
-        ctx.insert_into_bag("resource_type", Arc::new(ResourceType::Databases));
+        ctx.insert_into_bag("resource_type", Box::new(ResourceType::Databases));
 
         options.decorate_request(&mut request, database_name.as_ref())?;
         let response = self

@@ -45,6 +45,7 @@ impl DatabaseClient {
             .body(bytes::Bytes::new())
             .unwrap()
             .into();
+        ctx.insert_into_bag("resource_type", Box::new(ResourceType::Databases));
         options.decorate_request(&mut request)?;
         let response = self
             .pipeline()
@@ -78,6 +79,7 @@ impl DatabaseClient {
             http::Method::POST,
             ResourceType::Collections,
         );
+        ctx.insert_into_bag("resource_type", Box::new(ResourceType::Collections));
         options.decorate_request(&mut request, collection_name.as_ref())?;
         let response = self
             .pipeline()
