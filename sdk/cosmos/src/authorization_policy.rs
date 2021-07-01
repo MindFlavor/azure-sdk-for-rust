@@ -45,11 +45,13 @@ impl Policy for AuthorizationPolicy {
         }
 
         let resource_type = {
-            let resource_type = ctx.get_from_bag("resource_type").unwrap();
+            let resource_type = ctx
+                .get_from_bag("resource_type")
+                .expect("SDK bug: bag item resource_type must be set before starting the pipeline");
 
             resource_type
                 .downcast_ref::<ResourceType>()
-                .unwrap()
+                .expect("SDK bug: bag item called resource_type must be of type ResourceType")
                 .to_owned()
         };
         println!("obtained resource type == {:?}", resource_type);
