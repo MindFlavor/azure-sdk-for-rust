@@ -7,7 +7,7 @@ use std::cmp::PartialEq;
 #[derive(Debug, thiserror::Error)]
 pub enum PipelineError {
     #[error("Invalid pipeline: last policy is not a TransportPolicy: {0:?}")]
-    InvalidTailPolicy(Box<dyn Policy>),
+    InvalidTailPolicy(String),
 }
 
 #[non_exhaustive]

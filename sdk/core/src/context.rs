@@ -1,6 +1,3 @@
-use std::any::Any;
-use std::collections::HashMap;
-
 /// Pipeline execution context.
 ///
 /// During a pipeline execution, context will be passed from the function starting the
@@ -9,25 +6,31 @@ use std::collections::HashMap;
 /// pipeline execution history between policies.
 /// For example, it could be used to signal that an execution failed because a CosmosDB endpoint is
 /// down and the appropriate policy should try the next one).
-#[derive(Default)]
-pub struct Context {
-    bag: HashMap<&'static str, Box<dyn Any + Send + Sync>>,
+pub struct Context<R>
+where
+    R: Send + Sync,
+{
+    r: R,
 }
 
-impl Context {
-    pub fn new() -> Self {
-        Self::default()
+impl<R> Context<R>
+where
+    R: Send + Sync,
+{
+    pub fn set(&mut self, r: R) {
+        self.r = r;
     }
 
-    pub fn get_from_bag(&self, k: &str) -> Option<&Box<dyn Any + Send + Sync>> {
-        self.bag.get(k)
+    pub fn get(&self) -> &R {
+        &self.r
     }
+}
 
-    pub fn insert_into_bag(
-        &mut self,
-        k: &'static str,
-        v: Box<dyn Any + Send + Sync>,
-    ) -> Option<Box<dyn Any + Send + Sync>> {
-        self.bag.insert(k, v)
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
+pub struct UninitializedContext {}
+
+impl UninitializedContext {
+    pub fn initialize<R: Send + Sync>(&mut self, r: R) -> Context<R> {
+        Context { r }
     }
 }

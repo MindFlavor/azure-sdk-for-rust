@@ -16,13 +16,16 @@ use std::time::Duration;
 ///     .telemetry(TelemetryOptions::default().application_id("my-application"));
 /// ```
 #[derive(Clone, Debug, Default)]
-pub struct ClientOptions {
+pub struct ClientOptions<R>
+where
+    R: Send + Sync,
+{
     // TODO: Expose transport override.
     /// Policies called per call.
-    pub(crate) per_call_policies: Vec<Arc<dyn Policy>>,
+    pub(crate) per_call_policies: Vec<Arc<dyn Policy<R>>>,
 
     /// Policies called per retry.
-    pub(crate) per_retry_policies: Vec<Arc<dyn Policy>>,
+    pub(crate) per_retry_policies: Vec<Arc<dyn Policy<R>>>,
 
     /// Retry options.
     pub(crate) retry: RetryOptions,
@@ -34,20 +37,23 @@ pub struct ClientOptions {
     pub(crate) transport: TransportOptions,
 }
 
-impl ClientOptions {
+impl<R> ClientOptions<R>
+where
+    R: Send + Sync,
+{
     /// A mutable reference to per-call policies.
-    pub fn per_call_policies_mut(&mut self) -> &mut Vec<Arc<dyn Policy>> {
+    pub fn per_call_policies_mut(&mut self) -> &mut Vec<Arc<dyn Policy<R>>> {
         &mut self.per_call_policies
     }
 
     /// A mutable reference to per-retry policies.
-    pub fn per_retry_policies_mut(&mut self) -> &mut Vec<Arc<dyn Policy>> {
+    pub fn per_retry_policies_mut(&mut self) -> &mut Vec<Arc<dyn Policy<R>>> {
         &mut self.per_retry_policies
     }
 
     setters! {
-        per_call_policies: Vec<Arc<dyn Policy>> => per_call_policies,
-        per_retry_policies: Vec<Arc<dyn Policy>> => per_retry_policies,
+        per_call_policies: Vec<Arc<dyn Policy<R>>> => per_call_policies,
+        per_retry_policies: Vec<Arc<dyn Policy<R>>> => per_retry_policies,
         retry: RetryOptions => retry,
         telemetry: TelemetryOptions => telemetry,
         transport: TransportOptions => transport,
@@ -121,7 +127,7 @@ impl Default for RetryOptions {
 }
 
 impl RetryOptions {
-    pub(crate) fn to_policy(&self) -> Arc<dyn Policy> {
+    pub(crate) fn to_policy<R: Send + Sync>(&self) -> Arc<dyn Policy<R>> {
         match self.mode {
             RetryMode::Exponential => Arc::new(ExponentialRetryPolicy::new(
                 self.delay,
