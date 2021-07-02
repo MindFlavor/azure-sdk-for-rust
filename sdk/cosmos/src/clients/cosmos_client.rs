@@ -31,7 +31,7 @@ const TIME_FORMAT: &str = "%a, %d %h %Y %T GMT";
 /// A plain Cosmos client.
 #[derive(Debug, Clone)]
 pub struct CosmosClient {
-    pipeline: Pipeline,
+    pipeline: Pipeline<ResourceType>,
     auth_token: AuthorizationToken,
     cloud_location: CloudLocation,
 }
@@ -39,7 +39,7 @@ pub struct CosmosClient {
 /// Options for specifying how a Cosmos client will behave
 #[derive(Debug, Clone, Default)]
 pub struct CosmosOptions {
-    options: ClientOptions,
+    options: ClientOptions<ResourceType>,
 }
 
 impl CosmosOptions {
@@ -57,8 +57,8 @@ impl CosmosOptions {
 fn new_pipeline_from_options(
     options: CosmosOptions,
     authorization_token: AuthorizationToken,
-) -> Pipeline {
-    let auth_policy: Arc<dyn azure_core::Policy> =
+) -> Pipeline<ResourceType> {
+    let auth_policy: Arc<dyn azure_core::Policy<ResourceType>> =
         Arc::new(crate::AuthorizationPolicy::new(authorization_token));
 
     let mut per_retry_policies = Vec::with_capacity(1);
@@ -147,7 +147,7 @@ impl CosmosClient {
     /// Create a database
     pub async fn create_database<S: AsRef<str>>(
         &self,
-        mut ctx: Context,
+        mut ctx: Context<ResourceType>,
         database_name: S,
         options: CreateDatabaseOptions,
     ) -> Result<CreateDatabaseResponse, crate::Error> {
@@ -165,7 +165,7 @@ impl CosmosClient {
         Ok(CreateDatabaseResponse::try_from(response).await?)
     }
 
-    pub(crate) fn pipeline(&self) -> &Pipeline {
+    pub(crate) fn pipeline(&self) -> &Pipeline<ResourceType> {
         &self.pipeline
     }
 

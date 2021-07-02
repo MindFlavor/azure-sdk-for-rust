@@ -28,13 +28,18 @@ impl AuthorizationPolicy {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct CosmosContext {
+    resource_type: ResourceType,
+}
+
 #[async_trait::async_trait]
-impl Policy for AuthorizationPolicy {
+impl Policy<CosmosContext> for AuthorizationPolicy {
     async fn send(
         &self,
-        ctx: &mut Context,
+        ctx: &mut Context<CosmosContext>,
         request: &mut Request,
-        next: &[Arc<dyn Policy>],
+        next: &[Arc<dyn Policy<CosmosContext>>],
     ) -> PolicyResult<Response> {
         println!("called AuthorizationPolicy::send. self == {:#?}", self);
 

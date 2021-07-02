@@ -15,7 +15,7 @@ use std::time::Duration;
 ///     .retry(RetryOptions::default().max_retries(10u32))
 ///     .telemetry(TelemetryOptions::default().application_id("my-application"));
 /// ```
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct ClientOptions<R>
 where
     R: Send + Sync,
@@ -35,6 +35,21 @@ where
 
     /// Transport options.
     pub(crate) transport: TransportOptions,
+}
+
+impl<R> Default for ClientOptions<R>
+where
+    R: Send + Sync,
+{
+    fn default() -> Self {
+        Self {
+            per_call_policies: Vec::new(),
+            per_retry_policies: Vec::new(),
+            retry: RetryOptions::default(),
+            telemetry: TelemetryOptions::default(),
+            transport: TransportOptions::default(),
+        }
+    }
 }
 
 impl<R> ClientOptions<R>

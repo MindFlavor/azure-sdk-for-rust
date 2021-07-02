@@ -37,7 +37,7 @@ impl DatabaseClient {
     /// Get the database
     pub async fn get_database(
         &self,
-        mut ctx: Context,
+        mut ctx: Context<ResourceType>,
         options: GetDatabaseOptions,
     ) -> Result<GetDatabaseResponse, crate::Error> {
         let mut request = self
@@ -70,7 +70,7 @@ impl DatabaseClient {
     /// Create a collection
     pub async fn create_collection<S: AsRef<str>>(
         &self,
-        mut ctx: Context,
+        mut ctx: Context<ResourceType>,
         collection_name: S,
         options: CreateCollectionOptions,
     ) -> Result<CreateCollectionResponse, crate::Error> {
@@ -124,7 +124,7 @@ impl DatabaseClient {
         self.cosmos_client().http_client()
     }
 
-    fn pipeline(&self) -> &Pipeline {
+    fn pipeline(&self) -> &Pipeline<ResourceType> {
         self.cosmos_client.pipeline()
     }
 }
