@@ -85,7 +85,7 @@ impl DatabaseClient {
             ResourceType::Collections,
         );
         let mut cosmos_context = Context::new(CosmosContext {
-            resource_type: ResourceType::Databases,
+            resource_type: ResourceType::Collections,
         });
 
         options.decorate_request(&mut request, collection_name.as_ref())?;

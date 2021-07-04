@@ -1,4 +1,3 @@
-use azure_core::prelude::*;
 use azure_cosmos::prelude::*;
 
 use futures::stream::StreamExt;
@@ -40,11 +39,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     println!("list_databases_response = {:#?}", list_databases_response);
 
     let db = client
-        .create_database(
-            azure_core::Context::new(),
-            &database_name,
-            CreateDatabaseOptions::new(),
-        )
+        .create_database(&database_name, CreateDatabaseOptions::new())
         .await?;
     println!("created database = {:#?}", db);
 
@@ -53,11 +48,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         let db_client = client.clone().into_database_client(database_name.clone());
 
         let create_collection_response = db_client
-            .create_collection(
-                Context::new(),
-                "panzadoro",
-                CreateCollectionOptions::new("/id"),
-            )
+            .create_collection("panzadoro", CreateCollectionOptions::new("/id"))
             .await?;
 
         println!(
