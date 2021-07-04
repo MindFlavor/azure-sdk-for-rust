@@ -1,4 +1,3 @@
-use crate::Policy;
 use http::StatusCode;
 #[cfg(feature = "enable_hyper")]
 use hyper::{self, body, Body};

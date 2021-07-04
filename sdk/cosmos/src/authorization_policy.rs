@@ -30,7 +30,7 @@ impl AuthorizationPolicy {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct CosmosContext {
-    resource_type: ResourceType,
+    pub(crate) resource_type: ResourceType,
 }
 
 #[async_trait::async_trait]
@@ -45,21 +45,9 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
 
         if next.is_empty() {
             return Err(Box::new(azure_core::PipelineError::InvalidTailPolicy(
-                Box::new(self.clone()),
+                "Authorization policies cannot be the last policy of a pipeline".to_owned(),
             )));
         }
-
-        let resource_type = {
-            let resource_type = ctx
-                .get_from_bag("resource_type")
-                .expect("SDK bug: bag item resource_type must be set before starting the pipeline");
-
-            resource_type
-                .downcast_ref::<ResourceType>()
-                .expect("SDK bug: bag item called resource_type must be of type ResourceType")
-                .to_owned()
-        };
-        println!("obtained resource type == {:?}", resource_type);
 
         let time = format!("{}", chrono::Utc::now().format(TIME_FORMAT));
 
@@ -72,7 +60,7 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
             generate_authorization(
                 &self.authorization_token,
                 &request.method(),
-                &resource_type,
+                &ctx.get().resource_type,
                 resource_link,
                 &time,
             )

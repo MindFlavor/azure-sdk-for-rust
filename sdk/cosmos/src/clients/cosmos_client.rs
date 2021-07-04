@@ -1,4 +1,5 @@
 use super::DatabaseClient;
+use crate::authorization_policy::CosmosContext;
 use crate::headers::*;
 use crate::operations::*;
 use crate::resources::permission::AuthorizationToken;
@@ -31,7 +32,7 @@ const TIME_FORMAT: &str = "%a, %d %h %Y %T GMT";
 /// A plain Cosmos client.
 #[derive(Debug, Clone)]
 pub struct CosmosClient {
-    pipeline: Pipeline<ResourceType>,
+    pipeline: Pipeline<CosmosContext>,
     auth_token: AuthorizationToken,
     cloud_location: CloudLocation,
 }
@@ -39,7 +40,7 @@ pub struct CosmosClient {
 /// Options for specifying how a Cosmos client will behave
 #[derive(Debug, Clone, Default)]
 pub struct CosmosOptions {
-    options: ClientOptions<ResourceType>,
+    options: ClientOptions<CosmosContext>,
 }
 
 impl CosmosOptions {
@@ -57,8 +58,8 @@ impl CosmosOptions {
 fn new_pipeline_from_options(
     options: CosmosOptions,
     authorization_token: AuthorizationToken,
-) -> Pipeline<ResourceType> {
-    let auth_policy: Arc<dyn azure_core::Policy<ResourceType>> =
+) -> Pipeline<CosmosContext> {
+    let auth_policy: Arc<dyn azure_core::Policy<CosmosContext>> =
         Arc::new(crate::AuthorizationPolicy::new(authorization_token));
 
     let mut per_retry_policies = Vec::with_capacity(1);
@@ -145,19 +146,27 @@ impl CosmosClient {
     }
 
     /// Create a database
-    pub async fn create_database<S: AsRef<str>>(
+    pub async fn create_database<S: AsRef<str>, R>(
         &self,
-        mut ctx: Context<ResourceType>,
+        //ctx: Context<R>, // I do not understand why the Context should be passes by the caller.
+        // Isn't options the right field to customize the call? I have disabled the parameter for
+        // the time being to simplify the API.
         database_name: S,
         options: CreateDatabaseOptions,
-    ) -> Result<CreateDatabaseResponse, crate::Error> {
+    ) -> Result<CreateDatabaseResponse, crate::Error>
+    where
+        R: Send + Sync,
+    {
         let mut request = self.prepare_request2("dbs", http::Method::POST, ResourceType::Databases);
-        ctx.insert_into_bag("resource_type", Box::new(ResourceType::Databases));
+
+        let mut cosmos_context = Context::new(CosmosContext {
+            resource_type: ResourceType::Databases,
+        });
 
         options.decorate_request(&mut request, database_name.as_ref())?;
         let response = self
             .pipeline()
-            .send(&mut ctx, &mut request)
+            .send(&mut cosmos_context, &mut request)
             .await?
             .validate(http::StatusCode::CREATED)
             .await?;
@@ -165,7 +174,7 @@ impl CosmosClient {
         Ok(CreateDatabaseResponse::try_from(response).await?)
     }
 
-    pub(crate) fn pipeline(&self) -> &Pipeline<ResourceType> {
+    pub(crate) fn pipeline(&self) -> &Pipeline<CosmosContext> {
         &self.pipeline
     }
 

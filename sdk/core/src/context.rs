@@ -17,20 +17,15 @@ impl<R> Context<R>
 where
     R: Send + Sync,
 {
+    pub fn new(r: R) -> Self {
+        Self { r }
+    }
+
     pub fn set(&mut self, r: R) {
         self.r = r;
     }
 
     pub fn get(&self) -> &R {
         &self.r
-    }
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
-pub struct UninitializedContext {}
-
-impl UninitializedContext {
-    pub fn initialize<R: Send + Sync>(&mut self, r: R) -> Context<R> {
-        Context { r }
     }
 }
