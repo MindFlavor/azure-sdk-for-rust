@@ -18,11 +18,11 @@ pub type PolicyResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 /// The only runtime enforced check is that the last policy must be a Transport policy. It's up to
 /// the implementer to call the following policy.
 #[async_trait::async_trait]
-pub trait Policy: Send + Sync + std::fmt::Debug {
+pub trait Policy<R: Send + Sync>: Send + Sync + std::fmt::Debug {
     async fn send(
         &self,
-        ctx: &mut Context,
+        ctx: &mut Context<R>,
         request: &mut Request,
-        next: &[Arc<dyn Policy>],
+        next: &[Arc<dyn Policy<R>>],
     ) -> PolicyResult<Response>;
 }

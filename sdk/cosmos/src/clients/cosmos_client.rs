@@ -1,4 +1,5 @@
 use super::DatabaseClient;
+use crate::authorization_policy::CosmosContext;
 use crate::headers::*;
 use crate::operations::*;
 use crate::resources::permission::AuthorizationToken;
@@ -6,7 +7,6 @@ use crate::resources::ResourceType;
 use crate::{requests, ReadonlyString};
 
 use azure_core::pipeline::Pipeline;
-use azure_core::Context;
 use azure_core::HttpClient;
 use azure_core::Request;
 use azure_core::*;
@@ -31,7 +31,7 @@ const TIME_FORMAT: &str = "%a, %d %h %Y %T GMT";
 /// A plain Cosmos client.
 #[derive(Debug, Clone)]
 pub struct CosmosClient {
-    pipeline: Pipeline,
+    pipeline: Pipeline<CosmosContext>,
     auth_token: AuthorizationToken,
     cloud_location: CloudLocation,
 }
@@ -39,7 +39,7 @@ pub struct CosmosClient {
 /// Options for specifying how a Cosmos client will behave
 #[derive(Debug, Clone, Default)]
 pub struct CosmosOptions {
-    options: ClientOptions,
+    options: ClientOptions<CosmosContext>,
 }
 
 impl CosmosOptions {
@@ -54,13 +54,25 @@ impl CosmosOptions {
 }
 
 /// Create a Pipeline from CosmosOptions
-fn new_pipeline_from_options(options: CosmosOptions) -> Pipeline {
+fn new_pipeline_from_options(
+    options: CosmosOptions,
+    authorization_token: AuthorizationToken,
+) -> Pipeline<CosmosContext> {
+    let auth_policy: Arc<dyn azure_core::Policy<CosmosContext>> =
+        Arc::new(crate::AuthorizationPolicy::new(authorization_token));
+
+    let mut per_retry_policies = Vec::with_capacity(1);
+    // take care of adding the AuthorizationPolicy as **last** retry policy.
+    // Policies can change the url and/or the headers and the AuthorizationPolicy
+    // must be able to inspect them or the resulting token will be invalid.
+    per_retry_policies.push(auth_policy);
+
     Pipeline::new(
         option_env!("CARGO_PKG_NAME"),
         option_env!("CARGO_PKG_VERSION"),
         &options.options,
         Vec::new(),
-        Vec::new(),
+        per_retry_policies,
     )
 }
 
@@ -68,7 +80,11 @@ impl CosmosClient {
     /// Create a new `CosmosClient` which connects to the account's instance in the public Azure cloud.
     pub fn new(account: String, auth_token: AuthorizationToken, options: CosmosOptions) -> Self {
         let cloud_location = CloudLocation::Public(account);
-        let pipeline = new_pipeline_from_options(options);
+        // TODO: The AuthorizationToken will only be stored in the pipeline via its policy.
+        // Right now the AuthorizationToken is a field of the Client.
+        // This will be corrected once every Cosmos function has been be migrated to the pipeline.
+        // Once that happens, we will remove the clone below.
+        let pipeline = new_pipeline_from_options(options, auth_token.clone());
         Self {
             pipeline,
             auth_token,
@@ -83,7 +99,7 @@ impl CosmosClient {
         options: CosmosOptions,
     ) -> Self {
         let cloud_location = CloudLocation::China(account);
-        let pipeline = new_pipeline_from_options(options);
+        let pipeline = new_pipeline_from_options(options, auth_token.clone());
         Self {
             pipeline,
             auth_token,
@@ -99,7 +115,7 @@ impl CosmosClient {
         options: CosmosOptions,
     ) -> Self {
         let cloud_location = CloudLocation::Custom { account, uri };
-        let pipeline = new_pipeline_from_options(options);
+        let pipeline = new_pipeline_from_options(options, auth_token.clone());
         Self {
             pipeline,
             auth_token,
@@ -115,7 +131,7 @@ impl CosmosClient {
             account: String::from("Custom"),
             uri,
         };
-        let pipeline = new_pipeline_from_options(options);
+        let pipeline = new_pipeline_from_options(options, auth_token.clone());
         Self {
             pipeline,
             auth_token,
@@ -131,16 +147,20 @@ impl CosmosClient {
     /// Create a database
     pub async fn create_database<S: AsRef<str>>(
         &self,
-        ctx: Context,
+        //ctx: Context<R>, // I do not understand why the Context should be passes by the caller.
+        // Isn't options the right field for this? I have disabled the parameter for
+        // the time being to simplify the API.
         database_name: S,
         options: CreateDatabaseOptions,
     ) -> Result<CreateDatabaseResponse, crate::Error> {
         let mut request = self.prepare_request2("dbs", http::Method::POST, ResourceType::Databases);
-        let mut ctx = ctx.clone();
+
+        let mut cosmos_context = ResourceType::Databases.into();
+
         options.decorate_request(&mut request, database_name.as_ref())?;
         let response = self
             .pipeline()
-            .send(&mut ctx, &mut request)
+            .send(&mut cosmos_context, &mut request)
             .await?
             .validate(http::StatusCode::CREATED)
             .await?;
@@ -148,7 +168,7 @@ impl CosmosClient {
         Ok(CreateDatabaseResponse::try_from(response).await?)
     }
 
-    pub(crate) fn pipeline(&self) -> &Pipeline {
+    pub(crate) fn pipeline(&self) -> &Pipeline<CosmosContext> {
         &self.pipeline
     }
 
@@ -177,6 +197,7 @@ impl CosmosClient {
 
         let auth = {
             let resource_link = generate_resource_link(&uri_path);
+            println!("resource_link_old == {}", resource_link);
             generate_authorization(
                 &self.auth_token,
                 &http_method,

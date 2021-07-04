@@ -1,10 +1,11 @@
 use super::*;
+use crate::authorization_policy::CosmosContext;
 use crate::operations::*;
 use crate::resources::ResourceType;
 use crate::{requests, ReadonlyString};
 
 use azure_core::pipeline::Pipeline;
-use azure_core::{Context, HttpClient};
+use azure_core::HttpClient;
 
 /// A client for Cosmos database resources.
 #[derive(Debug, Clone)]
@@ -37,7 +38,6 @@ impl DatabaseClient {
     /// Get the database
     pub async fn get_database(
         &self,
-        mut ctx: Context,
         options: GetDatabaseOptions,
     ) -> Result<GetDatabaseResponse, crate::Error> {
         let mut request = self
@@ -45,10 +45,13 @@ impl DatabaseClient {
             .body(bytes::Bytes::new())
             .unwrap()
             .into();
+
+        let mut cosmos_context = ResourceType::Databases.into();
+
         options.decorate_request(&mut request)?;
         let response = self
             .pipeline()
-            .send(&mut ctx, &mut request)
+            .send(&mut cosmos_context, &mut request)
             .await?
             .validate(http::StatusCode::OK)
             .await?;
@@ -69,7 +72,6 @@ impl DatabaseClient {
     /// Create a collection
     pub async fn create_collection<S: AsRef<str>>(
         &self,
-        mut ctx: Context,
         collection_name: S,
         options: CreateCollectionOptions,
     ) -> Result<CreateCollectionResponse, crate::Error> {
@@ -78,10 +80,12 @@ impl DatabaseClient {
             http::Method::POST,
             ResourceType::Collections,
         );
+        let mut cosmos_context = ResourceType::Collections.into();
+
         options.decorate_request(&mut request, collection_name.as_ref())?;
         let response = self
             .pipeline()
-            .send(&mut ctx, &mut request)
+            .send(&mut cosmos_context, &mut request)
             .await?
             .validate(http::StatusCode::CREATED)
             .await?;
@@ -122,7 +126,7 @@ impl DatabaseClient {
         self.cosmos_client().http_client()
     }
 
-    fn pipeline(&self) -> &Pipeline {
+    fn pipeline(&self) -> &Pipeline<CosmosContext> {
         self.cosmos_client.pipeline()
     }
 }

@@ -58,12 +58,15 @@ impl<'a> TelemetryPolicy {
 }
 
 #[async_trait::async_trait]
-impl Policy for TelemetryPolicy {
+impl<R> Policy<R> for TelemetryPolicy
+where
+    R: Send + Sync,
+{
     async fn send(
         &self,
-        ctx: &mut Context,
+        ctx: &mut Context<R>,
         request: &mut Request,
-        next: &[Arc<dyn Policy>],
+        next: &[Arc<dyn Policy<R>>],
     ) -> PolicyResult<Response> {
         request
             .headers_mut()
