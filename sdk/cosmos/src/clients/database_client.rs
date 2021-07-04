@@ -5,7 +5,7 @@ use crate::resources::ResourceType;
 use crate::{requests, ReadonlyString};
 
 use azure_core::pipeline::Pipeline;
-use azure_core::{Context, HttpClient};
+use azure_core::HttpClient;
 
 /// A client for Cosmos database resources.
 #[derive(Debug, Clone)]
@@ -38,7 +38,6 @@ impl DatabaseClient {
     /// Get the database
     pub async fn get_database(
         &self,
-        //mut ctx: Context<CosmosContext>,
         options: GetDatabaseOptions,
     ) -> Result<GetDatabaseResponse, crate::Error> {
         let mut request = self
@@ -47,9 +46,7 @@ impl DatabaseClient {
             .unwrap()
             .into();
 
-        let mut cosmos_context = Context::new(CosmosContext {
-            resource_type: ResourceType::Databases,
-        });
+        let mut cosmos_context = ResourceType::Databases.into();
 
         options.decorate_request(&mut request)?;
         let response = self
@@ -75,7 +72,6 @@ impl DatabaseClient {
     /// Create a collection
     pub async fn create_collection<S: AsRef<str>>(
         &self,
-        //mut ctx: Context<ResourceType>,
         collection_name: S,
         options: CreateCollectionOptions,
     ) -> Result<CreateCollectionResponse, crate::Error> {
@@ -84,9 +80,7 @@ impl DatabaseClient {
             http::Method::POST,
             ResourceType::Collections,
         );
-        let mut cosmos_context = Context::new(CosmosContext {
-            resource_type: ResourceType::Collections,
-        });
+        let mut cosmos_context = ResourceType::Collections.into();
 
         options.decorate_request(&mut request, collection_name.as_ref())?;
         let response = self

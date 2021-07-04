@@ -7,7 +7,6 @@ use crate::resources::ResourceType;
 use crate::{requests, ReadonlyString};
 
 use azure_core::pipeline::Pipeline;
-use azure_core::Context;
 use azure_core::HttpClient;
 use azure_core::Request;
 use azure_core::*;
@@ -149,16 +148,14 @@ impl CosmosClient {
     pub async fn create_database<S: AsRef<str>>(
         &self,
         //ctx: Context<R>, // I do not understand why the Context should be passes by the caller.
-        // Isn't options the right field to customize the call? I have disabled the parameter for
+        // Isn't options the right field for this? I have disabled the parameter for
         // the time being to simplify the API.
         database_name: S,
         options: CreateDatabaseOptions,
     ) -> Result<CreateDatabaseResponse, crate::Error> {
         let mut request = self.prepare_request2("dbs", http::Method::POST, ResourceType::Databases);
 
-        let mut cosmos_context = Context::new(CosmosContext {
-            resource_type: ResourceType::Databases,
-        });
+        let mut cosmos_context = ResourceType::Databases.into();
 
         options.decorate_request(&mut request, database_name.as_ref())?;
         let response = self

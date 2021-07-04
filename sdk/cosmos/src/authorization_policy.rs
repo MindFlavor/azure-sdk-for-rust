@@ -33,6 +33,12 @@ pub(crate) struct CosmosContext {
     pub(crate) resource_type: ResourceType,
 }
 
+impl From<ResourceType> for Context<CosmosContext> {
+    fn from(resource_type: ResourceType) -> Self {
+        Self::new(CosmosContext { resource_type })
+    }
+}
+
 #[async_trait::async_trait]
 impl Policy<CosmosContext> for AuthorizationPolicy {
     async fn send(
