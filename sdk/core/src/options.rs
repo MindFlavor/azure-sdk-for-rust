@@ -11,7 +11,7 @@ use std::time::Duration;
 ///
 /// ```
 /// use azure_core::{ClientOptions, RetryOptions, TelemetryOptions};
-/// let options = ClientOptions::default()
+/// let options: ClientOptions<()> = ClientOptions::default()
 ///     .retry(RetryOptions::default().max_retries(10u32))
 ///     .telemetry(TelemetryOptions::default().application_id("my-application"));
 /// ```
