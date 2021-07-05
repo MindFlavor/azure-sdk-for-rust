@@ -1,7 +1,7 @@
 use crate::headers::{HEADER_DATE, HEADER_VERSION};
 use crate::resources::permission::AuthorizationToken;
 use crate::resources::ResourceType;
-use azure_core::{Context, Policy, PolicyResult, Request, Response};
+use azure_core::{PipelineContext, Policy, PolicyResult, Request, Response};
 use http::header::AUTHORIZATION;
 use http::HeaderValue;
 use ring::hmac;
@@ -33,9 +33,9 @@ pub(crate) struct CosmosContext {
     pub(crate) resource_type: ResourceType,
 }
 
-impl From<ResourceType> for Context<CosmosContext> {
+impl From<ResourceType> for CosmosContext {
     fn from(resource_type: ResourceType) -> Self {
-        Self::new(CosmosContext { resource_type })
+        Self { resource_type }
     }
 }
 
@@ -43,7 +43,7 @@ impl From<ResourceType> for Context<CosmosContext> {
 impl Policy<CosmosContext> for AuthorizationPolicy {
     async fn send(
         &self,
-        ctx: &mut Context<CosmosContext>,
+        ctx: &mut PipelineContext<CosmosContext>,
         request: &mut Request,
         next: &[Arc<dyn Policy<CosmosContext>>],
     ) -> PolicyResult<Response> {
@@ -66,7 +66,7 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
             generate_authorization(
                 &self.authorization_token,
                 &request.method(),
-                &ctx.get().resource_type,
+                &ctx.get_bag().resource_type,
                 resource_link,
                 &time,
             )

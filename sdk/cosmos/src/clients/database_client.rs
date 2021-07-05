@@ -3,9 +3,8 @@ use crate::authorization_policy::CosmosContext;
 use crate::operations::*;
 use crate::resources::ResourceType;
 use crate::{requests, ReadonlyString};
-
 use azure_core::pipeline::Pipeline;
-use azure_core::HttpClient;
+use azure_core::{Context, HttpClient, PipelineContext};
 
 /// A client for Cosmos database resources.
 #[derive(Debug, Clone)]
@@ -38,6 +37,7 @@ impl DatabaseClient {
     /// Get the database
     pub async fn get_database(
         &self,
+        ctx: Context,
         options: GetDatabaseOptions,
     ) -> Result<GetDatabaseResponse, crate::Error> {
         let mut request = self
@@ -45,13 +45,12 @@ impl DatabaseClient {
             .body(bytes::Bytes::new())
             .unwrap()
             .into();
-
-        let mut cosmos_context = ResourceType::Databases.into();
+        let mut pipeline_context = PipelineContext::new(ctx, ResourceType::Databases.into());
 
         options.decorate_request(&mut request)?;
         let response = self
             .pipeline()
-            .send(&mut cosmos_context, &mut request)
+            .send(&mut pipeline_context, &mut request)
             .await?
             .validate(http::StatusCode::OK)
             .await?;
@@ -72,6 +71,7 @@ impl DatabaseClient {
     /// Create a collection
     pub async fn create_collection<S: AsRef<str>>(
         &self,
+        ctx: Context,
         collection_name: S,
         options: CreateCollectionOptions,
     ) -> Result<CreateCollectionResponse, crate::Error> {
@@ -80,12 +80,12 @@ impl DatabaseClient {
             http::Method::POST,
             ResourceType::Collections,
         );
-        let mut cosmos_context = ResourceType::Collections.into();
+        let mut pipeline_context = PipelineContext::new(ctx, ResourceType::Collections.into());
 
         options.decorate_request(&mut request, collection_name.as_ref())?;
         let response = self
             .pipeline()
-            .send(&mut cosmos_context, &mut request)
+            .send(&mut pipeline_context, &mut request)
             .await?
             .validate(http::StatusCode::CREATED)
             .await?;

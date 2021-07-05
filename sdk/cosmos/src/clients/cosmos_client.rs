@@ -147,20 +147,18 @@ impl CosmosClient {
     /// Create a database
     pub async fn create_database<S: AsRef<str>>(
         &self,
-        //ctx: Context<R>, // I do not understand why the Context should be passes by the caller.
-        // Isn't options the right field for this? I have disabled the parameter for
-        // the time being to simplify the API.
+        ctx: Context,
         database_name: S,
         options: CreateDatabaseOptions,
     ) -> Result<CreateDatabaseResponse, crate::Error> {
         let mut request = self.prepare_request2("dbs", http::Method::POST, ResourceType::Databases);
 
-        let mut cosmos_context = ResourceType::Databases.into();
+        let mut pipeline_context = PipelineContext::new(ctx, ResourceType::Databases.into());
 
         options.decorate_request(&mut request, database_name.as_ref())?;
         let response = self
             .pipeline()
-            .send(&mut cosmos_context, &mut request)
+            .send(&mut pipeline_context, &mut request)
             .await?
             .validate(http::StatusCode::CREATED)
             .await?;
