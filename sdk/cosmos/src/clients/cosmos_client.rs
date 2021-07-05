@@ -1,11 +1,11 @@
 use super::DatabaseClient;
+use crate::authorization_policy::generate_resource_link;
 use crate::authorization_policy::CosmosContext;
 use crate::headers::*;
 use crate::operations::*;
 use crate::resources::permission::AuthorizationToken;
 use crate::resources::ResourceType;
 use crate::{requests, ReadonlyString};
-
 use azure_core::pipeline::Pipeline;
 use azure_core::HttpClient;
 use azure_core::Request;
@@ -13,11 +13,10 @@ use azure_core::*;
 use http::request::Builder as RequestBuilder;
 use http::{header, HeaderValue};
 use ring::hmac;
-use url::form_urlencoded;
-
 use std::borrow::Cow;
 use std::fmt::Debug;
 use std::sync::Arc;
+use url::form_urlencoded;
 
 /// The well-known account key used by Azure Cosmos DB Emulator.
 /// https://docs.microsoft.com/azure/cosmos-db/local-emulator?tabs=ssl-netstd21#connect-with-emulator-apis
@@ -333,44 +332,6 @@ fn string_to_sign(
     )
 }
 
-fn generate_resource_link(u: &str) -> &str {
-    static ENDING_STRINGS: &[&str] = &[
-        "dbs",
-        "colls",
-        "docs",
-        "sprocs",
-        "users",
-        "permissions",
-        "attachments",
-        "pkranges",
-        "udfs",
-        "triggers",
-    ];
-
-    // store the element only if it does not end with dbs, colls or docs
-    let p = u;
-    let len = p.len();
-    for str_to_match in ENDING_STRINGS {
-        let end_len = str_to_match.len();
-
-        if end_len <= len {
-            let end_offset = len - end_len;
-            let sm = &p[end_offset..];
-            if sm == *str_to_match {
-                if len == end_len {
-                    return "";
-                }
-
-                if &p[end_offset - 1..end_offset] == "/" {
-                    let ret = &p[0..len - end_len - 1];
-                    return ret;
-                }
-            }
-        }
-    }
-    p
-}
-
 /// The cloud with which you want to interact.
 ///
 /// All variants require the cosmos account name. `Custom` also requires a valid
@@ -394,101 +355,5 @@ impl CloudLocation {
             CloudLocation::China(account) => format!("https://{}.documents.azure.cn", account),
             CloudLocation::Custom { uri, .. } => uri.clone(),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn string_to_sign_00() {
-        let time =
-            chrono::DateTime::parse_from_rfc3339("1900-01-01T01:00:00.000000000+00:00").unwrap();
-        let time = time.with_timezone(&chrono::Utc);
-        let time = format!("{}", time.format(TIME_FORMAT));
-
-        let ret = string_to_sign(
-            &http::Method::GET,
-            ResourceType::Databases,
-            "dbs/MyDatabase/colls/MyCollection",
-            &time,
-        );
-        assert_eq!(
-            ret,
-            "get
-dbs
-dbs/MyDatabase/colls/MyCollection
-mon, 01 jan 1900 01:00:00 gmt
-
-"
-        );
-    }
-
-    #[test]
-    fn generate_authorization_00() {
-        let time =
-            chrono::DateTime::parse_from_rfc3339("1900-01-01T01:00:00.000000000+00:00").unwrap();
-        let time = time.with_timezone(&chrono::Utc);
-        let time = format!("{}", time.format(TIME_FORMAT));
-
-        let auth_token = AuthorizationToken::primary_from_base64(
-            "8F8xXXOptJxkblM1DBXW7a6NMI5oE8NnwPGYBmwxLCKfejOK7B7yhcCHMGvN3PBrlMLIOeol1Hv9RCdzAZR5sg==",
-        )
-        .unwrap();
-
-        let ret = generate_authorization(
-            &auth_token,
-            &http::Method::GET,
-            ResourceType::Databases,
-            "dbs/MyDatabase/colls/MyCollection",
-            &time,
-        );
-        assert_eq!(
-            ret,
-            "type%3Dmaster%26ver%3D1.0%26sig%3DQkz%2Fr%2B1N2%2BPEnNijxGbGB%2FADvLsLBQmZ7uBBMuIwf4I%3D"
-        );
-    }
-
-    #[test]
-    fn generate_authorization_01() {
-        let time =
-            chrono::DateTime::parse_from_rfc3339("2017-04-27T00:51:12.000000000+00:00").unwrap();
-        let time = time.with_timezone(&chrono::Utc);
-        let time = format!("{}", time.format(TIME_FORMAT));
-
-        let auth_token = AuthorizationToken::primary_from_base64(
-            "dsZQi3KtZmCv1ljt3VNWNm7sQUF1y5rJfC6kv5JiwvW0EndXdDku/dkKBp8/ufDToSxL",
-        )
-        .unwrap();
-
-        let ret = generate_authorization(
-            &auth_token,
-            &http::Method::GET,
-            ResourceType::Databases,
-            "dbs/ToDoList",
-            &time,
-        );
-
-        // This is the result shown in the MSDN page. It's clearly wrong :)
-        // below is the correct one.
-        //assert_eq!(ret,
-        //           "type%3dmaster%26ver%3d1.0%26sig%3dc09PEVJrgp2uQRkr934kFbTqhByc7TVr3O");
-
-        assert_eq!(
-            ret,
-            "type%3Dmaster%26ver%3D1.0%26sig%3DKvBM8vONofkv3yKm%2F8zD9MEGlbu6jjHDJBp4E9c2ZZI%3D"
-        );
-    }
-
-    #[test]
-    fn generate_resource_link_00() {
-        assert_eq!(generate_resource_link("dbs/second"), "dbs/second");
-        assert_eq!(generate_resource_link("dbs"), "");
-        assert_eq!(
-            generate_resource_link("colls/second/third"),
-            "colls/second/third"
-        );
-        assert_eq!(generate_resource_link("dbs/test_db/colls"), "dbs/test_db");
     }
 }
