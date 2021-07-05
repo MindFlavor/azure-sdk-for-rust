@@ -1,5 +1,6 @@
-use crate::policies::{Context, Policy, PolicyResult, Request, Response};
+use crate::policies::{Policy, PolicyResult, Request, Response};
 use crate::sleep::sleep;
+use crate::PipelineContext;
 use chrono::{DateTime, Local};
 use std::sync::Arc;
 use std::time::Duration;
@@ -52,7 +53,7 @@ where
 {
     async fn send(
         &self,
-        ctx: &mut Context<R>,
+        ctx: &mut PipelineContext<R>,
         request: &mut Request,
         next: &[Arc<dyn Policy<R>>],
     ) -> PolicyResult<Response> {

@@ -2,7 +2,7 @@ mod retry_policies;
 mod telemetry_policy;
 mod transport;
 
-use crate::{Context, Request, Response};
+use crate::{PipelineContext, Request, Response};
 pub use retry_policies::*;
 use std::error::Error;
 use std::sync::Arc;
@@ -21,7 +21,7 @@ pub type PolicyResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 pub trait Policy<R: Send + Sync>: Send + Sync + std::fmt::Debug {
     async fn send(
         &self,
-        ctx: &mut Context<R>,
+        ctx: &mut PipelineContext<R>,
         request: &mut Request,
         next: &[Arc<dyn Policy<R>>],
     ) -> PolicyResult<Response>;

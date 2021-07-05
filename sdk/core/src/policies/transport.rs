@@ -3,7 +3,7 @@ use crate::policies::{Policy, PolicyResult};
 #[allow(unused_imports)]
 use crate::TransportOptions;
 #[allow(unused_imports)]
-use crate::{Context, HttpClient, Request, Response};
+use crate::{Context, HttpClient, PipelineContext, Request, Response};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
@@ -28,7 +28,7 @@ where
 {
     async fn send(
         &self,
-        _ctx: &mut Context<R>,
+        _ctx: &mut PipelineContext<R>,
         request: &mut Request,
         next: &[Arc<dyn Policy<R>>],
     ) -> PolicyResult<Response> {

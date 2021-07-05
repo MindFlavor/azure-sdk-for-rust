@@ -1,4 +1,5 @@
-use crate::policies::{Context, Policy, PolicyResult, Request, Response};
+use crate::policies::{Policy, PolicyResult, Request, Response};
+use crate::PipelineContext;
 use std::sync::Arc;
 
 /// Retry policy that does not retry.
@@ -16,7 +17,7 @@ where
 {
     async fn send(
         &self,
-        ctx: &mut Context<R>,
+        ctx: &mut PipelineContext<R>,
         request: &mut Request,
         next: &[Arc<dyn Policy<R>>],
     ) -> PolicyResult<Response> {

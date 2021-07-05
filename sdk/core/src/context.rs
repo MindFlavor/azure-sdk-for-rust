@@ -6,26 +6,15 @@
 /// pipeline execution history between policies.
 /// For example, it could be used to signal that an execution failed because a CosmosDB endpoint is
 /// down and the appropriate policy should try the next one).
-pub struct Context<R>
-where
-    R: Send + Sync,
-{
-    r: R,
+#[derive(Clone)]
+pub struct Context {
+    // Temporary hack to make sure that Context is not initializeable
+    // Soon Context will have proper data fields
+    _priv: (),
 }
 
-impl<R> Context<R>
-where
-    R: Send + Sync,
-{
-    pub fn new(r: R) -> Self {
-        Self { r }
-    }
-
-    pub fn set(&mut self, r: R) {
-        self.r = r;
-    }
-
-    pub fn get(&self) -> &R {
-        &self.r
+impl Context {
+    pub fn new() -> Self {
+        Self { _priv: () }
     }
 }
