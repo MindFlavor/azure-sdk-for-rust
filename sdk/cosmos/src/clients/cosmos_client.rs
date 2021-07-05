@@ -203,8 +203,12 @@ impl CosmosClient {
         self.prepare_request_with_signature(uri_path, http_method, &time, &auth)
     }
 
-    /// Prepares' an `azure_core::Request`. This call does not handle authorization as
-    /// it will be done by the AuthorizationPolicy.
+    /// Prepares' an `azure_core::Request`. This function will
+    /// add the cloud location to the URI suffix and generate
+    /// a Request with the specified HTTP Method.
+    /// It will also set the body to an empty Bytes instance.
+    /// *Note*: This call does not handle authorization as
+    /// it will be done by the `AuthorizationPolicy`.
     ///
     /// Note: Eventually this method will replace `prepare_request` fully.
     pub(crate) fn prepare_request_pipeline(
