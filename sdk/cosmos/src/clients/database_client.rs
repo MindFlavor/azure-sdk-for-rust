@@ -41,10 +41,8 @@ impl DatabaseClient {
         options: GetDatabaseOptions,
     ) -> Result<GetDatabaseResponse, crate::Error> {
         let mut request = self
-            .prepare_request_with_database_name(http::Method::GET)
-            .body(bytes::Bytes::new())
-            .unwrap()
-            .into();
+            .cosmos_client()
+            .prepare_request_pipeline(&format!("dbs/{}", self.database_name()), http::Method::GET);
         let mut pipeline_context = PipelineContext::new(ctx, ResourceType::Databases.into());
 
         options.decorate_request(&mut request)?;
@@ -75,10 +73,9 @@ impl DatabaseClient {
         collection_name: S,
         options: CreateCollectionOptions,
     ) -> Result<CreateCollectionResponse, crate::Error> {
-        let mut request = self.cosmos_client().prepare_request2(
+        let mut request = self.cosmos_client().prepare_request_pipeline(
             &format!("dbs/{}/colls", self.database_name()),
             http::Method::POST,
-            ResourceType::Collections,
         );
         let mut pipeline_context = PipelineContext::new(ctx, ResourceType::Collections.into());
 

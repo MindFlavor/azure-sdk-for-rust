@@ -47,7 +47,7 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
         request: &mut Request,
         next: &[Arc<dyn Policy<CosmosContext>>],
     ) -> PolicyResult<Response> {
-        println!("called AuthorizationPolicy::send. self == {:#?}", self);
+        trace!("called AuthorizationPolicy::send. self == {:#?}", self);
 
         if next.is_empty() {
             return Err(Box::new(azure_core::PipelineError::InvalidTailPolicy(
@@ -55,14 +55,14 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
             )));
         }
 
-        let time = format!("{}", chrono::Utc::now().format(TIME_FORMAT));
+        let time = chrono::Utc::now().format(TIME_FORMAT).to_string();
 
         let uri_path = &request.uri().path_and_query().unwrap().to_string()[1..];
-        println!("uri_path == {:#?}", uri_path);
+        trace!("uri_path used by AuthorizationPolicy == {:#?}", uri_path);
 
         let auth = {
             let resource_link = generate_resource_link(&uri_path);
-            println!("resource_link_new == {}", resource_link);
+            debug!("resource_link == {}", resource_link);
             generate_authorization(
                 &self.authorization_token,
                 &request.method(),
@@ -72,13 +72,11 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
             )
         };
 
-        println!("about to add {} == {}", AUTHORIZATION, &auth);
-
-        // add the headers
-        // TODO: remove this when no longer necessary
-        request.headers_mut().remove(HEADER_DATE);
-        request.headers_mut().remove(HEADER_VERSION);
-        request.headers_mut().remove(AUTHORIZATION);
+        trace!(
+            "AuthorizationPolicy calculated authorization == {}: {}",
+            AUTHORIZATION,
+            &auth
+        );
 
         request
             .headers_mut()
@@ -90,9 +88,10 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
             .headers_mut()
             .append(AUTHORIZATION, HeaderValue::from_str(&auth)?);
 
-        println!("\n\nrequest =={:?}", request);
+        trace!("\n\nrequest =={:?}", request);
 
-        // now next[0] is safe (will not panic) because of the above check
+        // now next[0] is safe (will not panic) because we checked
+        // at the beginning of the function.
         next[0].send(ctx, request, &next[1..]).await
     }
 }
@@ -137,7 +136,8 @@ pub(crate) fn generate_resource_link(u: &str) -> &str {
     p
 }
 
-fn generate_authorization(
+// TODO: make it private after pipeline migration
+pub(crate) fn generate_authorization(
     auth_token: &AuthorizationToken,
     http_method: &http::Method,
     resource_type: &ResourceType,
