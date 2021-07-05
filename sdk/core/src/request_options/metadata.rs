@@ -55,6 +55,20 @@ impl AddAsHeader for &Metadata {
 
         builder
     }
+
+    fn add_as_header2(
+        &self,
+        request: &mut crate::Request,
+    ) -> Result<(), http::header::InvalidHeaderValue> {
+        for (key, val) in self.0.iter() {
+            request.headers_mut().append(
+                &format!("x-ms-meta-{}", key) as &str,
+                http::HeaderValue::from_bytes(val.as_ref())?,
+            );
+        }
+
+        Ok(())
+    }
 }
 
 impl From<&HeaderMap> for Metadata {

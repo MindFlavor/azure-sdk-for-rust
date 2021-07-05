@@ -36,9 +36,10 @@ impl TryFrom<&HeaderMap> for CommonStorageResponseHeaders {
 
 pub trait AddAsHeader {
     fn add_as_header(&self, builder: Builder) -> Builder;
-    fn add_as_header2(&self, _request: &mut crate::Request) {
-        unimplemented!()
-    }
+    fn add_as_header2(
+        &self,
+        request: &mut crate::Request,
+    ) -> Result<(), http::header::InvalidHeaderValue>;
 }
 
 #[must_use]
