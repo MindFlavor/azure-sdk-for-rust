@@ -58,10 +58,13 @@ pub fn add_optional_header<T: AddAsHeader>(item: &Option<T>, mut builder: Builde
     builder
 }
 
-pub fn add_optional_header2<T: AddAsHeader>(item: &Option<T>, request: &mut crate::Request) {
-    if let Some(item) = item {
-        item.add_as_header2(request);
-    }
+pub fn add_optional_header2<T: AddAsHeader>(
+    item: &Option<T>,
+    request: &mut crate::Request,
+) -> Result<(), http::header::InvalidHeaderValue> {
+    Ok(if let Some(item) = item {
+        item.add_as_header2(request)?
+    })
 }
 
 #[must_use]

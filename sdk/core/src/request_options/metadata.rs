@@ -60,11 +60,13 @@ impl AddAsHeader for &Metadata {
         &self,
         request: &mut crate::Request,
     ) -> Result<(), http::header::InvalidHeaderValue> {
-        for (key, val) in self.0.iter() {
-            request.headers_mut().append(
-                &format!("x-ms-meta-{}", key) as &str,
-                http::HeaderValue::from_bytes(val.as_ref())?,
-            );
+        for (key, value) in self.0.iter() {
+            let header_name =
+                http::header::HeaderName::from_bytes(format!("x-ms-meta-{}", key).as_bytes())
+                    .unwrap();
+            let header_value = http::header::HeaderValue::from_bytes(value)?;
+
+            request.headers_mut().append(header_name, header_value);
         }
 
         Ok(())
