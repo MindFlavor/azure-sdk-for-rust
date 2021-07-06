@@ -62,8 +62,7 @@ impl AddAsHeader for &Metadata {
     ) -> Result<(), crate::errors::HTTPHeaderError> {
         for (key, value) in self.0.iter() {
             let header_name =
-                http::header::HeaderName::from_bytes(format!("x-ms-meta-{}", key).as_bytes())
-                    .unwrap();
+                http::header::HeaderName::from_bytes(format!("x-ms-meta-{}", key).as_bytes())?;
             let header_value = http::header::HeaderValue::from_bytes(value)?;
 
             request.headers_mut().append(header_name, header_value);
