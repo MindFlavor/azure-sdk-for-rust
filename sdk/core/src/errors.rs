@@ -9,6 +9,14 @@ pub enum PipelineError {
     InvalidTailPolicy(String),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum HTTPHeaderError {
+    #[error("{0}")]
+    InvalidHeaderValue(#[from] http::header::InvalidHeaderValue),
+    #[error("{0}")]
+    InvalidHeaderName(#[from] http::header::InvalidHeaderName),
+}
+
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

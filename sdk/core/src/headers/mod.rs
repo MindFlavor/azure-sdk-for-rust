@@ -34,12 +34,23 @@ impl TryFrom<&HeaderMap> for CommonStorageResponseHeaders {
     }
 }
 
+/// Implement this trait to allow a custom struct to express itself as a HTTP header.
+/// Ad interim we require two functions: `add_as_header` and `add_as_header2`. Make sure
+/// your implementations are functionally equivalent between the two. In other words, the
+/// effect should be the same regardless of which function the SDK calls.
+///
+/// While not restricted by the type system, please add HTTP headers only. In particular, do not
+/// interact with the body of the request.
+///
+/// As soon as the migration to the pipeline architecture will be complete we will phase out
+/// `add_as_header`.
 pub trait AddAsHeader {
     fn add_as_header(&self, builder: Builder) -> Builder;
+
     fn add_as_header2(
         &self,
         request: &mut crate::Request,
-    ) -> Result<(), http::header::InvalidHeaderValue>;
+    ) -> Result<(), crate::errors::HTTPHeaderError>;
 }
 
 #[must_use]
