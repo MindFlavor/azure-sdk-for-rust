@@ -102,43 +102,45 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
     }
 }
 
+/// This function strips the resource name from the passed uri. It does not alter the uri if a
+/// resource name is not present.
 // TODO: will become private as soon as cosmos_client will be migrated
 // to pipeline arch.
 pub(crate) fn generate_resource_link(uri: &str) -> &str {
     static ENDING_STRINGS: &[&str] = &[
-        "dbs",
-        "colls",
-        "docs",
-        "sprocs",
-        "users",
-        "permissions",
-        "attachments",
-        "pkranges",
-        "udfs",
-        "triggers",
+        "/dbs",
+        "/colls",
+        "/docs",
+        "/sprocs",
+        "/users",
+        "/permissions",
+        "/attachments",
+        "/pkranges",
+        "/udfs",
+        "/triggers",
     ];
 
-    // store the element only if it does not end with dbs, colls or docs
-    let len = uri.len();
-    for str_to_match in ENDING_STRINGS {
-        let end_len = str_to_match.len();
-
-        if end_len <= len {
-            let end_offset = len - end_len;
-            let sm = &uri[end_offset..];
-            if sm == *str_to_match {
-                if len == end_len {
-                    return "";
-                }
-
-                if &uri[end_offset - 1..end_offset] == "/" {
-                    let ret = &uri[0..len - end_len - 1];
-                    return ret;
-                }
-            }
+    // We find the above resource names. If found, we strip it and eagerly return. Note that the
+    // resource names have a leading slash so the suffix will match `test/users` but not
+    // `test-users`.
+    for ending in ENDING_STRINGS {
+        if let Some(uri_without_ending) = uri.strip_suffix(ending) {
+            return uri_without_ending;
         }
     }
-    uri
+
+    // This check handles the uris comprised by resource names only. It will match `users` and
+    // return an empty string. This is necessary because the previous check included a leading
+    // slash.
+    if ENDING_STRINGS
+        .into_iter()
+        .map(|ending| &ending[1..])
+        .any(|item| uri == item)
+    {
+        return "";
+    } else {
+        return uri;
+    }
 }
 
 // TODO: make it private after pipeline migration
