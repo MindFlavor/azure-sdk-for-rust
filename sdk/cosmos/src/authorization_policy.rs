@@ -13,8 +13,16 @@ const TIME_FORMAT: &str = "%a, %d %h %Y %T GMT";
 const AZURE_VERSION: &str = "2018-12-31";
 const VERSION: &str = "1.0";
 
-// We can implement Debug without leaking secrets because `AuthorizationToken`
-// already masks the secure bits on its own.
+/// The `AuthorizationPolicy` takes care to authenticate your calls to Azure CosmosDB. Currently it
+/// supports two type of authorization: one at service level and another at resource level (see
+/// [AuthorizationToken] for more info). The policy must be added just before the transport policy
+/// because it needs to inspect the values that are about to be sent to the transport and inject
+/// the proper authorization token.
+/// The `AuthorizationPolicy` is the only owner of the passed credentials so if you want to
+/// authenticate the same operation with different credentials all you have to do is to swap the
+/// `AuthorizationPolicy`.
+/// This struct is `Debug` but secrets are encrypted by `AuthorizationToken` so there is no risk of
+/// leaks in debug logs (secrets are stored in cleartext in memory: dumps are still leaky).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthorizationPolicy {
     authorization_token: AuthorizationToken,
@@ -88,8 +96,6 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
             .headers_mut()
             .append(AUTHORIZATION, HeaderValue::from_str(&auth)?);
 
-        trace!("\n\nrequest =={:?}", request);
-
         // now next[0] is safe (will not panic) because we checked
         // at the beginning of the function.
         next[0].send(ctx, request, &next[1..]).await
@@ -98,7 +104,7 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
 
 // TODO: will become private as soon as cosmos_client will be migrated
 // to pipeline arch.
-pub(crate) fn generate_resource_link(u: &str) -> &str {
+pub(crate) fn generate_resource_link(uri: &str) -> &str {
     static ENDING_STRINGS: &[&str] = &[
         "dbs",
         "colls",
@@ -113,27 +119,26 @@ pub(crate) fn generate_resource_link(u: &str) -> &str {
     ];
 
     // store the element only if it does not end with dbs, colls or docs
-    let p = u;
-    let len = p.len();
+    let len = uri.len();
     for str_to_match in ENDING_STRINGS {
         let end_len = str_to_match.len();
 
         if end_len <= len {
             let end_offset = len - end_len;
-            let sm = &p[end_offset..];
+            let sm = &uri[end_offset..];
             if sm == *str_to_match {
                 if len == end_len {
                     return "";
                 }
 
-                if &p[end_offset - 1..end_offset] == "/" {
-                    let ret = &p[0..len - end_len - 1];
+                if &uri[end_offset - 1..end_offset] == "/" {
+                    let ret = &uri[0..len - end_len - 1];
                     return ret;
                 }
             }
         }
     }
-    p
+    uri
 }
 
 // TODO: make it private after pipeline migration
