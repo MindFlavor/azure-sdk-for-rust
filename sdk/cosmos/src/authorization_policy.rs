@@ -74,7 +74,7 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
             generate_authorization(
                 &self.authorization_token,
                 &request.method(),
-                &ctx.get_bag().resource_type,
+                &ctx.get_contents().resource_type,
                 resource_link,
                 time_nonce,
             )

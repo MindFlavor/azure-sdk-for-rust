@@ -24,17 +24,17 @@ use std::sync::Arc;
 /// cannot be enforced by code). All policies except Transport policy can assume there is another following policy (so
 /// self.pipeline[0] is always valid).
 #[derive(Debug, Clone)]
-pub struct Pipeline<R>
+pub struct Pipeline<C>
 where
-    R: Send + Sync,
+    C: Send + Sync,
 {
     http_client: Arc<dyn HttpClient>,
-    pipeline: Vec<Arc<dyn Policy<R>>>,
+    pipeline: Vec<Arc<dyn Policy<C>>>,
 }
 
-impl<R> Pipeline<R>
+impl<C> Pipeline<C>
 where
-    R: Send + Sync,
+    C: Send + Sync,
 {
     /// Creates a new pipeline given the client library crate name and version,
     /// alone with user-specified and client library-specified policies.
@@ -44,11 +44,11 @@ where
     pub fn new(
         crate_name: Option<&'static str>,
         crate_version: Option<&'static str>,
-        options: &ClientOptions<R>,
-        per_call_policies: Vec<Arc<dyn Policy<R>>>,
-        per_retry_policies: Vec<Arc<dyn Policy<R>>>,
+        options: &ClientOptions<C>,
+        per_call_policies: Vec<Arc<dyn Policy<C>>>,
+        per_retry_policies: Vec<Arc<dyn Policy<C>>>,
     ) -> Self {
-        let mut pipeline: Vec<Arc<dyn Policy<R>>> = Vec::with_capacity(
+        let mut pipeline: Vec<Arc<dyn Policy<C>>> = Vec::with_capacity(
             options.per_call_policies.len()
                 + per_call_policies.len()
                 + options.per_retry_policies.len()
@@ -89,7 +89,7 @@ where
 
     pub async fn send(
         &self,
-        ctx: &mut PipelineContext<R>,
+        ctx: &mut PipelineContext<C>,
         request: &mut Request,
     ) -> Result<Response, Error> {
         self.pipeline[0]
