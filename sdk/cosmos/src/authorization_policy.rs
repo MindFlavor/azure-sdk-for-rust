@@ -1,6 +1,7 @@
 use crate::headers::{HEADER_DATE, HEADER_VERSION};
 use crate::resources::permission::AuthorizationToken;
 use crate::resources::ResourceType;
+use crate::TimeNonce;
 use azure_core::{PipelineContext, Policy, PolicyResult, Request, Response};
 use http::header::AUTHORIZATION;
 use http::HeaderValue;
@@ -9,7 +10,6 @@ use std::borrow::Cow;
 use std::sync::Arc;
 use url::form_urlencoded;
 
-const TIME_FORMAT: &str = "%a, %d %h %Y %T GMT";
 const AZURE_VERSION: &str = "2018-12-31";
 const VERSION: &str = "1.0";
 
@@ -63,7 +63,7 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
             )));
         }
 
-        let time = chrono::Utc::now().format(TIME_FORMAT).to_string();
+        let time_nonce = TimeNonce::new();
 
         let uri_path = &request.uri().path_and_query().unwrap().to_string()[1..];
         trace!("uri_path used by AuthorizationPolicy == {:#?}", uri_path);
@@ -76,7 +76,7 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
                 &request.method(),
                 &ctx.get_bag().resource_type,
                 resource_link,
-                &time,
+                time_nonce,
             )
         };
 
@@ -88,7 +88,7 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
 
         request
             .headers_mut()
-            .append(HEADER_DATE, HeaderValue::from_str(&time)?);
+            .append(HEADER_DATE, HeaderValue::from_str(&time_nonce.to_string())?);
         request
             .headers_mut()
             .append(HEADER_VERSION, HeaderValue::from_static(AZURE_VERSION));
@@ -149,9 +149,9 @@ pub(crate) fn generate_authorization(
     http_method: &http::Method,
     resource_type: &ResourceType,
     resource_link: &str,
-    time: &str,
+    time_nonce: TimeNonce,
 ) -> String {
-    let string_to_sign = string_to_sign(http_method, resource_type, resource_link, time);
+    let string_to_sign = string_to_sign(http_method, resource_type, resource_link, time_nonce);
     debug!(
         "generate_authorization::string_to_sign == {:?}",
         string_to_sign
@@ -182,7 +182,7 @@ fn string_to_sign(
     http_method: &http::Method,
     rt: &ResourceType,
     resource_link: &str,
-    time: &str,
+    time_nonce: TimeNonce,
 ) -> String {
     // From official docs:
     // StringToSign =
@@ -220,7 +220,7 @@ fn string_to_sign(
             ResourceType::Triggers => "triggers",
         },
         resource_link,
-        time.to_lowercase()
+        time_nonce.to_string().to_lowercase()
     )
 }
 
@@ -238,14 +238,13 @@ mod tests {
     fn string_to_sign_00() {
         let time =
             chrono::DateTime::parse_from_rfc3339("1900-01-01T01:00:00.000000000+00:00").unwrap();
-        let time = time.with_timezone(&chrono::Utc);
-        let time = format!("{}", time.format(TIME_FORMAT));
+        let time = time.with_timezone(&chrono::Utc).into();
 
         let ret = string_to_sign(
             &http::Method::GET,
             &ResourceType::Databases,
             "dbs/MyDatabase/colls/MyCollection",
-            &time,
+            time,
         );
         assert_eq!(
             ret,
@@ -262,8 +261,7 @@ mon, 01 jan 1900 01:00:00 gmt
     fn generate_authorization_00() {
         let time =
             chrono::DateTime::parse_from_rfc3339("1900-01-01T01:00:00.000000000+00:00").unwrap();
-        let time = time.with_timezone(&chrono::Utc);
-        let time = format!("{}", time.format(TIME_FORMAT));
+        let time = time.with_timezone(&chrono::Utc).into();
 
         let auth_token = AuthorizationToken::primary_from_base64(
             "8F8xXXOptJxkblM1DBXW7a6NMI5oE8NnwPGYBmwxLCKfejOK7B7yhcCHMGvN3PBrlMLIOeol1Hv9RCdzAZR5sg==",
@@ -275,7 +273,7 @@ mon, 01 jan 1900 01:00:00 gmt
             &http::Method::GET,
             &ResourceType::Databases,
             "dbs/MyDatabase/colls/MyCollection",
-            &time,
+            time,
         );
         assert_eq!(
             ret,
@@ -287,8 +285,7 @@ mon, 01 jan 1900 01:00:00 gmt
     fn generate_authorization_01() {
         let time =
             chrono::DateTime::parse_from_rfc3339("2017-04-27T00:51:12.000000000+00:00").unwrap();
-        let time = time.with_timezone(&chrono::Utc);
-        let time = format!("{}", time.format(TIME_FORMAT));
+        let time = time.with_timezone(&chrono::Utc).into();
 
         let auth_token = AuthorizationToken::primary_from_base64(
             "dsZQi3KtZmCv1ljt3VNWNm7sQUF1y5rJfC6kv5JiwvW0EndXdDku/dkKBp8/ufDToSxL",
@@ -300,7 +297,7 @@ mon, 01 jan 1900 01:00:00 gmt
             &http::Method::GET,
             &ResourceType::Databases,
             "dbs/ToDoList",
-            &time,
+            time,
         );
 
         // This is the result shown in the MSDN page. It's clearly wrong :)
