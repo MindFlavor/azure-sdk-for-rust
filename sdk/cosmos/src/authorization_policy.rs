@@ -70,7 +70,7 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
 
         let auth = {
             let resource_link = generate_resource_link(&uri_path);
-            debug!("resource_link == {}", resource_link);
+            trace!("resource_link == {}", resource_link);
             generate_authorization(
                 &self.authorization_token,
                 &request.method(),
@@ -152,25 +152,26 @@ pub(crate) fn generate_authorization(
     time_nonce: TimeNonce,
 ) -> String {
     let string_to_sign = string_to_sign(http_method, resource_type, resource_link, time_nonce);
-    debug!(
+    trace!(
         "generate_authorization::string_to_sign == {:?}",
         string_to_sign
     );
 
+    let authorization_type = match auth_token {
+        AuthorizationToken::Primary(_) => "master",
+        AuthorizationToken::Resource(_) => "resource",
+    };
+
+    let signature = match auth_token {
+        AuthorizationToken::Primary(key) => Cow::Owned(encode_str_to_sign(&string_to_sign, key)),
+        AuthorizationToken::Resource(key) => Cow::Borrowed(key),
+    };
+
     let str_unencoded = format!(
         "type={}&ver={}&sig={}",
-        match auth_token {
-            AuthorizationToken::Primary(_) => "master",
-            AuthorizationToken::Resource(_) => "resource",
-        },
-        VERSION,
-        match auth_token {
-            AuthorizationToken::Primary(key) =>
-                Cow::Owned(encode_str_to_sign(&string_to_sign, key)),
-            AuthorizationToken::Resource(key) => Cow::Borrowed(key),
-        },
+        authorization_type, VERSION, signature
     );
-    debug!(
+    trace!(
         "generate_authorization::str_unencoded == {:?}",
         str_unencoded
     );

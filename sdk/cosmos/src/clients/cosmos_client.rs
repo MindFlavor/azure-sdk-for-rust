@@ -54,7 +54,7 @@ fn new_pipeline_from_options(
     let auth_policy: Arc<dyn azure_core::Policy<CosmosContext>> =
         Arc::new(crate::AuthorizationPolicy::new(authorization_token));
 
-    let mut per_retry_policies = Vec::with_capacity(1);
+    let mut per_retry_policies = Vec::new();
     // take care of adding the AuthorizationPolicy as **last** retry policy.
     // Policies can change the url and/or the headers and the AuthorizationPolicy
     // must be able to inspect them or the resulting token will be invalid.
