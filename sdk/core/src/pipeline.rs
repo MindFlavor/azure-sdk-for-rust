@@ -16,13 +16,21 @@ use std::sync::Arc;
 /// 5. Client library-specified per-retry policies. Per-retry polices are always executed at least once but are re-executed
 ///    in case of retries.
 /// 6. User-specified per-retry policies are executed.
-/// 7. Transport policy. Transport policy is always the last policy and is the policy that
+/// 7. Authorization policy. Authorization can depend on the HTTP headers and/or the request body so it
+///    must be executed right before sending the request to the transport. Also, the authorization
+///    can depend on the current time so it must be executed at every retry.
+/// 8. Transport policy. Transport policy is always the last policy and is the policy that
 ///    actually constructs the `Response` to be passed up the pipeline.
 ///
 /// A pipeline is immutable. In other words a policy can either succeed and call the following
 /// policy of fail and return to the calling policy. Arbitrary policy "skip" must be avoided (but
 /// cannot be enforced by code). All policies except Transport policy can assume there is another following policy (so
 /// self.pipeline[0] is always valid).
+///
+/// The `C` generic contains the pipeline-specific context. Different crates can pass
+/// different contexts using this generic. This way each crate can have its own specific pipeline
+/// context. For example, in CosmosDB, the generic carries the operation-specific information used by
+/// the authorization policy.
 #[derive(Debug, Clone)]
 pub struct Pipeline<C>
 where
