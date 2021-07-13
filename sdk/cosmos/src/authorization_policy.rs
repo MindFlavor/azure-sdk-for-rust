@@ -103,7 +103,13 @@ impl Policy<CosmosContext> for AuthorizationPolicy {
 }
 
 /// This function strips the resource name from the passed uri. It does not alter the uri if a
-/// resource name is not present.
+/// resource name is not present. This is accomplished in three steps (with eager return):
+/// 1. Find if the uri ends with a ENDING_STRING. If so, strip it and return. Every ENDING_STRING
+///    starts with a leading slash so this check will not match uri compsed **only** by the
+///    ENDING_STRING.
+/// 2. Find if the uri **is** the ending string (without the leading slash). If so return an empty
+///    string. This covers the exception of the rule above.
+/// 3. Return the received uri unchanged.
 // TODO: will become private as soon as cosmos_client will be migrated
 // to pipeline arch.
 pub(crate) fn generate_resource_link(uri: &str) -> &str {
@@ -134,7 +140,7 @@ pub(crate) fn generate_resource_link(uri: &str) -> &str {
     // slash.
     if ENDING_STRINGS
         .into_iter()
-        .map(|ending| &ending[1..])
+        .map(|ending| &ending[1..]) // this is safe since every ENDING_STRING starts with a slash
         .any(|item| uri == item)
     {
         return "";
@@ -228,6 +234,11 @@ fn string_to_sign(
     )
 }
 
+/// This function HMAC_SHA256 signs the passed string, given the supplied key. The passed string
+/// will be encoded as per its UTF-8 representation. The resulting byte array is then base64
+/// encoded and returned to the caller. Possibile optimization: profile if the HMAC struct
+/// initialization is expensive and, if so, cache it somehow to avoid recreating it at every
+/// request.
 fn encode_str_to_sign(str_to_sign: &str, key: &[u8]) -> String {
     let key = hmac::Key::new(ring::hmac::HMAC_SHA256, key);
     let sig = hmac::sign(&key, str_to_sign.as_bytes());
